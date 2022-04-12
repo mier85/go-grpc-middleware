@@ -59,7 +59,7 @@ func UnaryClientInterceptor(optFuncs ...CallOption) grpc.UnaryClientInterceptor 
 					continue
 				}
 			}
-			if !isRetriable(lastErr, callOpts) {
+			if !callOpts.isRetriable(lastErr, callOpts) {
 				return lastErr
 			}
 		}
@@ -122,7 +122,7 @@ func StreamClientInterceptor(optFuncs ...CallOption) grpc.StreamClientIntercepto
 					continue
 				}
 			}
-			if !isRetriable(lastErr, callOpts) {
+			if !callOpts.isRetriable(lastErr, callOpts) {
 				return nil, lastErr
 			}
 		}
@@ -191,7 +191,7 @@ func (s *serverStreamingRetryingStream) RecvMsg(m interface{}) error {
 		newStream, err := s.reestablishStreamAndResendBuffer(callCtx)
 		if err != nil {
 			// Retry dial and transport errors of establishing stream as grpc doesn't retry.
-			if isRetriable(err, s.callOpts) {
+			if s.callOpts.isRetriable(err, s.callOpts) {
 				continue
 			}
 			return err
@@ -223,7 +223,7 @@ func (s *serverStreamingRetryingStream) receiveMsgAndIndicateRetry(m interface{}
 			return true, err
 		}
 	}
-	return isRetriable(err, s.callOpts), err
+	return s.callOpts.isRetriable(err, s.callOpts), err
 }
 
 func (s *serverStreamingRetryingStream) reestablishStreamAndResendBuffer(

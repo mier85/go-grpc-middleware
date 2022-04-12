@@ -26,6 +26,7 @@ var (
 		backoffFunc: BackoffFuncContext(func(ctx context.Context, attempt uint) time.Duration {
 			return BackoffLinearWithJitter(50*time.Millisecond /*jitter*/, 0.10)(attempt)
 		}),
+		isRetriable: isRetriable,
 	}
 )
 
@@ -104,12 +105,23 @@ func WithPerRetryTimeout(timeout time.Duration) CallOption {
 	}}
 }
 
+// WithRetriableCallback sets the method that is used to determine whether a call is retriable or not.
+//
+// This should not be used in combination with WithCodes as the codes will be ignored with this
+func WithRetriableCallback(callback RetriableCallback) CallOption {
+	return CallOption{applyFunc: func(o *options) {
+		o.isRetriable = callback
+	}}
+}
+
+type RetriableCallback func(err error, callOpts *options) bool
 type options struct {
 	max            uint
 	perCallTimeout time.Duration
 	includeHeader  bool
 	codes          []codes.Code
 	backoffFunc    BackoffFuncContext
+	isRetriable    RetriableCallback
 }
 
 // CallOption is a grpc.CallOption that is local to grpc_retry.
